@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm vitest run
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
+      - run: flutter pub get
+        working-directory: apps/codex_pocket_ui
+      - run: flutter analyze
+        working-directory: apps/codex_pocket_ui
+      - run: flutter test
+        working-directory: apps/codex_pocket_ui
+      - run: npx wrangler deploy --dry-run
+        working-directory: apps/pocket-relay

@@ -1,0 +1,71 @@
+name: Phase 3 cross-platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-cross-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform-neutral:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64 — platform-neutral only
+            os: windows-2025
+            platform: win32
+            arch: x64
+          - label: macOS Apple Silicon — platform-neutral only
+            os: macos-15
+            platform: darwin
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up exact Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify runner identity
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          node -e "if (process.platform !== process.env.EXPECTED_PLATFORM || process.arch !== process.env.EXPECTED_ARCH) throw new Error(JSON.stringify({ expectedPlatform: process.env.EXPECTED_PLATFORM, expectedArch: process.env.EXPECTED_ARCH, platform: process.platform, arch: process.arch })); console.log(JSON.stringify({ platform: process.platform, arch: process.arch, node: process.version }));"
+
+      - name: Install exact pnpm
+        run: npm install --global pnpm@11.22.0
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run platform-neutral suites
+        run: pnpm test:cross-platform
+
+      - name: Install locked Playwright Chromium
+        run: pnpm phase3:browser:install
+
+      - name: Run Phase 3 same-MCP Gate 1
+        env:
+          CODEX_POCKET_PHASE3_BROWSER: chromium
+        run: pnpm phase3:copresence

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "apps/ipc-probe/src/**/*.ts",
+    "apps/ipc-probe/test/**/*.ts",
+    "apps/pocket-cli/src/**/*.ts",
+    "apps/telegram-bot/src/**/*.ts",
+    "apps/telegram-bot/test/**/*.ts",
+    "apps/pocket-ui-bridge/src/**/*.ts",
+    "apps/pocket-ui-bridge/test/**/*.ts",
+    "packages/codex-core/src/**/*.ts",
+    "packages/codex-core/test/**/*.ts",
+    "packages/pocket-runtime/src/**/*.ts"
+    ,"packages/pocket-runtime/test/**/*.ts"
+  ]
+}

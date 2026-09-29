@@ -1,0 +1,6 @@
+{
+  "name": "@codex-pocket/ipc-probe",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}

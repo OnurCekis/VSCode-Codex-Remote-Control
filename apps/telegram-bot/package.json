@@ -1,0 +1,9 @@
+{
+  "name": "@codex-pocket/telegram",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "grammy": "1.45.1"
+  }
+}

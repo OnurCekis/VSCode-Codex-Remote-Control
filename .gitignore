@@ -1,0 +1,27 @@
+node_modules/
+dist/
+/uygulamalar/
+coverage/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.codex-pocket/
+tools/vscode-proxy/dist/
+protocol/generated/
+*.log
+.DS_Store
+# Local signing credentials must never enter source control.
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+key.properties
+# Disposable AF_UNIX artifacts created by the Windows path compatibility matrix.
+/C%3A/
+/Users/
+/cp-p05-*.sock

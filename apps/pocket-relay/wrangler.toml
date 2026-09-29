@@ -1,0 +1,25 @@
+name = "codex-pocket-relay"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "PocketRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PocketRoom"]
+
+[[ratelimits]]
+name = "CONNECTION_RATE_LIMITER"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 30
+period = 60
+
+[vars]
+ENVIRONMENT = "production"
+MAX_FRAME_BYTES = "131072"
+# Production secrets: FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY.
+# Production variable: FIREBASE_PROJECT_ID.

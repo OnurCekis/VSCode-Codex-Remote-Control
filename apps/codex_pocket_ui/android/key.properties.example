@@ -1,0 +1,4 @@
+storePassword=replace-in-private-build-environment
+keyPassword=replace-in-private-build-environment
+keyAlias=codex-pocket
+storeFile=/absolute/private/path/codex-pocket-release.jks

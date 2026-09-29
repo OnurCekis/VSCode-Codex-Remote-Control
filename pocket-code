@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+POCKET_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export PYTHONUTF8=1
+exec python3 "$POCKET_ROOT/scripts/pocket-code-bootstrap.py" "$@"
