@@ -4,7 +4,7 @@ Android önizleme, ARM64 cihazlarda Android 10 / API 29 ve sonrasını destekler
 
 ## Kurulum
 
-1. Aynı GitHub sürümünden `VSCode-Codex-Remote-Control-1.2.0-android-arm64-debug.apk` ile `SHA256SUMS.txt` dosyasını indirin.
+1. Aynı GitHub sürümünden `VSCode-Codex-Remote-Control-1.2.1-android-arm64-debug.apk` ile `SHA256SUMS.txt` dosyasını indirin.
 2. APK'nın SHA-256 değerini doğrulayın.
 3. Kullandığınız tarayıcı veya dosya yöneticisi için bilinmeyen kaynak izni verip APK'yı kurun.
 4. Bu önizleme debug imzalıdır. İleride production anahtarıyla imzalanan sürüme geçerken uygulamayı kaldırıp yeniden kurmak gerekebilir.

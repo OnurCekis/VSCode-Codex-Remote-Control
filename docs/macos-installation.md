@@ -4,7 +4,7 @@ This preview supports Apple Silicon Macs (M1 or newer). The app bundles the Pock
 
 ## Install
 
-1. Download `VSCode-Codex-Remote-Control-1.2.0-macos-arm64-unsigned.dmg` and `SHA256SUMS.txt` from the same GitHub release.
+1. Download `VSCode-Codex-Remote-Control-1.2.1-macos-arm64-unsigned.dmg` and `SHA256SUMS.txt` from the same GitHub release.
 2. Verify the DMG SHA-256.
 3. Open the DMG and drag **VS Code Codex Remote Control.app** to **Applications**.
 4. Open it from Applications.

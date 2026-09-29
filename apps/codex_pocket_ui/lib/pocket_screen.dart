@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'pocket_bridge.dart';
 import 'telegram_onboarding.dart';
+import 'app_localizations.dart';
 
 class PocketScreen extends StatefulWidget {
   const PocketScreen({super.key, required this.controller, this.onReconnect});
@@ -51,23 +52,27 @@ class _PocketScreenState extends State<PocketScreen> {
             IconButton(
               onPressed: () => _showHistory(context),
               icon: const Icon(Icons.history),
-              tooltip: 'Geçmiş',
+              tooltip: context.tr('History', 'Geçmiş'),
             ),
             IconButton(
               onPressed: () => _showUpdates(context),
               icon: const Icon(Icons.system_update_alt),
-              tooltip: 'Güncellemeleri denetle',
+              tooltip: context.tr(
+                'Check for updates',
+                'Güncellemeleri denetle',
+              ),
             ),
             IconButton(
               onPressed: controller.refresh,
               icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
+              tooltip: context.tr('Refresh', 'Yenile'),
             ),
             IconButton(
               onPressed: () => _pair(context),
               icon: const Icon(Icons.phonelink),
-              tooltip: 'Pair phone',
+              tooltip: context.tr('Pair phone', 'Telefonu eşleştir'),
             ),
+            const LanguageMenuButton(),
             const SizedBox(width: 8),
           ],
         ),
@@ -120,7 +125,7 @@ class _PocketScreenState extends State<PocketScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Telefonu eşleştir'),
+          title: Text(context.tr('Pair phone', 'Telefonu eşleştir')),
           content: SizedBox(
             width: 360,
             child: Column(
@@ -132,14 +137,20 @@ class _PocketScreenState extends State<PocketScreen> {
                   child: QrImageView(data: jsonEncode(qr), size: 240),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Android uygulamasında QR kodu okutun. Ardından beş dakika içinde Telegram doğrulamasını tamamlayın.',
+                Text(
+                  context.tr(
+                    'Scan this QR code in the Android app, then complete Telegram verification within five minutes.',
+                    'Android uygulamasında QR kodu okutun. Ardından beş dakika içinde Telegram doğrulamasını tamamlayın.',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 SelectableText('/pair $code'),
                 const SizedBox(height: 8),
                 Text(
-                  'Son kullanım: ${qr['expiresAt']}',
+                  context.tr(
+                    'Expires: ${qr['expiresAt']}',
+                    'Son kullanım: ${qr['expiresAt']}',
+                  ),
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
@@ -151,11 +162,13 @@ class _PocketScreenState extends State<PocketScreen> {
                 await widget.controller.revokePairing();
                 if (context.mounted) Navigator.pop(context);
               },
-              child: const Text('Eşleştirmeyi iptal et'),
+              child: Text(
+                context.tr('Cancel pairing', 'Eşleştirmeyi iptal et'),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Tamam'),
+              child: Text(context.tr('Done', 'Tamam')),
             ),
           ],
         ),
@@ -176,19 +189,21 @@ class _PocketScreenState extends State<PocketScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Son task ve output'),
+          title: Text(
+            context.tr('Latest task and output', 'Son task ve output'),
+          ),
           content: SizedBox(
             width: 560,
             child: SingleChildScrollView(
               child: SelectableText(
-                'TASK\n\n${value['task'] ?? '(bulunamadı)'}\n\nOUTPUT\n\n${value['output'] ?? '(henüz yok)'}',
+                'TASK\n\n${value['task'] ?? context.tr('(not found)', '(bulunamadı)')}\n\nOUTPUT\n\n${value['output'] ?? context.tr('(none yet)', '(henüz yok)')}',
               ),
             ),
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Tamam'),
+              child: Text(context.tr('Done', 'Tamam')),
             ),
           ],
         ),
@@ -209,14 +224,14 @@ class _PocketScreenState extends State<PocketScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Güncelleme durumu'),
+          title: Text(context.tr('Update status', 'Güncelleme durumu')),
           content: SelectableText(
-            'Durum: ${value['state']}\nKurulu: ${value['currentVersion'] ?? 'bilinmiyor'}\nMevcut: ${value['availableVersion'] ?? 'bilinmiyor'}',
+            '${context.tr('Status', 'Durum')}: ${value['state']}\n${context.tr('Installed', 'Kurulu')}: ${value['currentVersion'] ?? context.tr('unknown', 'bilinmiyor')}\n${context.tr('Available', 'Mevcut')}: ${value['availableVersion'] ?? context.tr('unknown', 'bilinmiyor')}',
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Tamam'),
+              child: Text(context.tr('Done', 'Tamam')),
             ),
           ],
         ),
@@ -257,7 +272,7 @@ class _Sidebar extends StatelessWidget {
               IconButton(
                 onPressed: () => _open(context),
                 icon: const Icon(Icons.create_new_folder_outlined),
-                tooltip: 'Open Project',
+                tooltip: context.tr('Open project', 'Proje aç'),
               ),
             ],
           ),
@@ -289,14 +304,17 @@ class _Sidebar extends StatelessWidget {
                     ? null
                     : () => _newConversation(context),
                 icon: const Icon(Icons.add_comment_outlined),
-                tooltip: 'Yeni sohbet',
+                tooltip: context.tr('New chat', 'Yeni sohbet'),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (conversations.isEmpty)
-            const Text(
-              'No conversation in this workspace.',
+            Text(
+              context.tr(
+                'No conversation in this workspace.',
+                'Bu workspace içinde sohbet yok.',
+              ),
               style: TextStyle(color: Colors.white54),
             ),
           for (final conversation in conversations)
@@ -332,7 +350,9 @@ class _Sidebar extends StatelessWidget {
       return;
     }
     try {
-      final value = await getDirectoryPath(confirmButtonText: 'Projeyi Aç');
+      final value = await getDirectoryPath(
+        confirmButtonText: context.tr('Open Project', 'Projeyi Aç'),
+      );
       if (value != null && value.trim().isNotEmpty) {
         await controller.openWorkspace(value.trim());
       }
@@ -361,7 +381,10 @@ class _Sidebar extends StatelessWidget {
             return AlertDialog(
               title: Text(
                 page == null
-                    ? 'Bilgisayardan workspace seç'
+                    ? context.tr(
+                        'Choose a workspace from your computer',
+                        'Bilgisayardan workspace seç',
+                      )
                     : '${(page!['directory'] as Map?)?['displayName']}',
               ),
               content: SizedBox(
@@ -385,7 +408,9 @@ class _Sidebar extends StatelessWidget {
                           if (page != null && page!['parent'] != null)
                             ListTile(
                               leading: const Icon(Icons.arrow_upward),
-                              title: const Text('Üst klasör'),
+                              title: Text(
+                                context.tr('Parent folder', 'Üst klasör'),
+                              ),
                               onTap: () async {
                                 final next = await controller
                                     .workspaceDirectory('${page!['parent']}');
@@ -411,7 +436,7 @@ class _Sidebar extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Vazgeç'),
+                  child: Text(context.tr('Cancel', 'Vazgeç')),
                 ),
                 if (page != null)
                   FilledButton(
@@ -421,7 +446,9 @@ class _Sidebar extends StatelessWidget {
                       );
                       if (dialogContext.mounted) Navigator.pop(dialogContext);
                     },
-                    child: const Text('Bu klasörü kullan'),
+                    child: Text(
+                      context.tr('Use this folder', 'Bu klasörü kullan'),
+                    ),
                   ),
               ],
             );
@@ -441,8 +468,13 @@ class _Sidebar extends StatelessWidget {
     final models = (data['models'] as List? ?? const []).cast<Map>();
     if (models.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kullanılabilir Codex modeli bulunamadı.'),
+        SnackBar(
+          content: Text(
+            context.tr(
+              'No Codex model is available.',
+              'Kullanılabilir Codex modeli bulunamadı.',
+            ),
+          ),
         ),
       );
       return;
@@ -460,7 +492,7 @@ class _Sidebar extends StatelessWidget {
               (selectedModel['supportedReasoningEfforts'] as List? ?? const [])
                   .cast<Map>();
           return AlertDialog(
-            title: const Text('Yeni sohbet'),
+            title: Text(context.tr('New chat', 'Yeni sohbet')),
             content: SizedBox(
               width: 440,
               child: Column(
@@ -490,15 +522,21 @@ class _Sidebar extends StatelessWidget {
                   DropdownButtonFormField<String>(
                     key: ValueKey('${selectedModel['model']}:$selectedEffort'),
                     initialValue: selectedEffort,
-                    decoration: const InputDecoration(
-                      labelText: 'Düşünme düzeyi',
+                    decoration: InputDecoration(
+                      labelText: context.tr(
+                        'Reasoning level',
+                        'Düşünme düzeyi',
+                      ),
                     ),
                     items: [
                       for (final effort in efforts)
                         DropdownMenuItem(
                           value: '${effort['reasoningEffort']}',
                           child: Text(
-                            _effortLabel('${effort['reasoningEffort']}'),
+                            _effortLabel(
+                              context,
+                              '${effort['reasoningEffort']}',
+                            ),
                           ),
                         ),
                     ],
@@ -530,7 +568,7 @@ class _Sidebar extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Vazgeç'),
+                child: Text(context.tr('Cancel', 'Vazgeç')),
               ),
               FilledButton(
                 onPressed: efforts.isEmpty
@@ -539,7 +577,7 @@ class _Sidebar extends StatelessWidget {
                         '${selectedModel['model']}',
                         selectedEffort,
                       )),
-                child: const Text('Sohbet oluştur'),
+                child: Text(context.tr('Create chat', 'Sohbet oluştur')),
               ),
             ],
           );
@@ -569,14 +607,14 @@ class _Sidebar extends StatelessWidget {
     return efforts.isEmpty ? '' : '${efforts.first['reasoningEffort']}';
   }
 
-  String _effortLabel(String effort) => switch (effort) {
-    'none' => 'Yok',
-    'minimal' => 'En düşük',
-    'low' => 'Düşük',
-    'medium' => 'Orta',
-    'high' => 'Yüksek',
-    'xhigh' => 'Çok yüksek',
-    'max' => 'Maksimum',
+  String _effortLabel(BuildContext context, String effort) => switch (effort) {
+    'none' => context.tr('None', 'Yok'),
+    'minimal' => context.tr('Minimal', 'En düşük'),
+    'low' => context.tr('Low', 'Düşük'),
+    'medium' => context.tr('Medium', 'Orta'),
+    'high' => context.tr('High', 'Yüksek'),
+    'xhigh' => context.tr('Extra high', 'Çok yüksek'),
+    'max' => context.tr('Maximum', 'Maksimum'),
     'ultra' => 'Ultra',
     _ => effort,
   };

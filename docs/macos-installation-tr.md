@@ -4,7 +4,7 @@ Bu önizleme Apple Silicon Mac'leri (M1 veya sonrası) destekler. Uygulama Pocke
 
 ## Kurulum
 
-1. Aynı GitHub sürümünden `VSCode-Codex-Remote-Control-1.2.0-macos-arm64-unsigned.dmg` ile `SHA256SUMS.txt` dosyasını indirin.
+1. Aynı GitHub sürümünden `VSCode-Codex-Remote-Control-1.2.1-macos-arm64-unsigned.dmg` ile `SHA256SUMS.txt` dosyasını indirin.
 2. DMG'nin SHA-256 değerini doğrulayın.
 3. DMG'yi açıp **VS Code Codex Remote Control.app** dosyasını **Applications** klasörüne sürükleyin.
 4. Uygulamayı Applications içinden açın.

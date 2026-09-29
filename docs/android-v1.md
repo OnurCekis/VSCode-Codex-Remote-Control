@@ -4,7 +4,7 @@ The Android preview supports Android 10 / API 29 and later on ARM64 devices. It 
 
 ## Install
 
-1. Download `VSCode-Codex-Remote-Control-1.2.0-android-arm64-debug.apk` and `SHA256SUMS.txt` from the same GitHub release.
+1. Download `VSCode-Codex-Remote-Control-1.2.1-android-arm64-debug.apk` and `SHA256SUMS.txt` from the same GitHub release.
 2. Verify the APK SHA-256.
 3. Allow installation from the browser or file manager you used, then install the APK.
 4. This preview is debug-signed. A future production-signed build can require uninstalling this preview first.

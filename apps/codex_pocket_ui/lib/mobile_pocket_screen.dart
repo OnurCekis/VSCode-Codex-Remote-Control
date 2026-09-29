@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pocket_bridge.dart';
+import 'app_localizations.dart';
 
 class MobilePocketScreen extends StatefulWidget {
   const MobilePocketScreen({
@@ -60,7 +61,12 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
       final data = controller.data;
       if (data == null) {
         return _MobileOffline(
-          message: controller.error ?? 'Bilgisayara ulaşılamıyor.',
+          message:
+              controller.error ??
+              context.tr(
+                'Computer is unreachable.',
+                'Bilgisayara ulaşılamıyor.',
+              ),
           reconnect: widget.onReconnect,
         );
       }
@@ -74,14 +80,14 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(switch (_tab) {
-                0 => 'Sohbet',
-                1 => 'Projeler',
-                _ => 'Kontrol',
+                0 => context.tr('Chat', 'Sohbet'),
+                1 => context.tr('Projects', 'Projeler'),
+                _ => context.tr('Control', 'Kontrol'),
               }),
               Text(
                 activeWorkspace?['displayName']?.toString() ??
                     activeWorkspace?['path']?.toString().split('/').last ??
-                    'Proje seçilmedi',
+                    context.tr('No project selected', 'Proje seçilmedi'),
                 style: const TextStyle(fontSize: 12, color: Colors.white54),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -96,13 +102,14 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                     ? null
                     : () => _newConversation(data),
                 icon: const Icon(Icons.add_comment_outlined),
-                tooltip: 'Yeni sohbet',
+                tooltip: context.tr('New chat', 'Yeni sohbet'),
               ),
             IconButton(
               onPressed: _busy ? null : () => _run(widget.controller.refresh),
               icon: const Icon(Icons.refresh),
-              tooltip: 'Yenile',
+              tooltip: context.tr('Refresh', 'Yenile'),
             ),
+            const LanguageMenuButton(),
             const SizedBox(width: 6),
           ],
         ),
@@ -163,21 +170,21 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
           onDestinationSelected: (value) => setState(() => _tab = value),
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'Sohbet',
+              icon: const Icon(Icons.chat_bubble_outline),
+              selectedIcon: const Icon(Icons.chat_bubble),
+              label: context.tr('Chat', 'Sohbet'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder),
-              label: 'Projeler',
+              icon: const Icon(Icons.folder_outlined),
+              selectedIcon: const Icon(Icons.folder),
+              label: context.tr('Projects', 'Projeler'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.tune_outlined),
-              selectedIcon: Icon(Icons.tune),
-              label: 'Kontrol',
+              icon: const Icon(Icons.tune_outlined),
+              selectedIcon: const Icon(Icons.tune),
+              label: context.tr('Control', 'Kontrol'),
             ),
           ],
         ),
@@ -208,7 +215,14 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
         .toList();
     if (models.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kullanılabilir Codex modeli yok.')),
+        SnackBar(
+          content: Text(
+            context.tr(
+              'No Codex model is available.',
+              'Kullanılabilir Codex modeli yok.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -239,12 +253,15 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Yeni sohbet',
+                  context.tr('New chat', 'Yeni sohbet'),
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Bu proje için model ve düşünme düzeyini seçin.',
+                Text(
+                  context.tr(
+                    'Choose a model and reasoning level for this project.',
+                    'Bu proje için model ve düşünme düzeyini seçin.',
+                  ),
                   style: TextStyle(color: Colors.white60),
                 ),
                 const SizedBox(height: 20),
@@ -280,16 +297,16 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                 DropdownButtonFormField<String>(
                   key: ValueKey('mobile-effort-${model['model']}-$effort'),
                   initialValue: effort.isEmpty ? null : effort,
-                  decoration: const InputDecoration(
-                    labelText: 'Düşünme düzeyi',
-                    prefixIcon: Icon(Icons.speed_outlined),
+                  decoration: InputDecoration(
+                    labelText: context.tr('Reasoning level', 'Düşünme düzeyi'),
+                    prefixIcon: const Icon(Icons.speed_outlined),
                   ),
                   items: [
                     for (final entry in efforts)
                       DropdownMenuItem(
                         value: entry['reasoningEffort']?.toString(),
                         child: Text(
-                          _effortLabel('${entry['reasoningEffort']}'),
+                          _effortLabel(context, '${entry['reasoningEffort']}'),
                         ),
                       ),
                   ],
@@ -315,7 +332,7 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                           effort,
                         )),
                   icon: const Icon(Icons.add_comment_outlined),
-                  label: const Text('Sohbeti oluştur'),
+                  label: Text(context.tr('Create chat', 'Sohbeti oluştur')),
                 ),
               ],
             ),
@@ -373,9 +390,12 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                       children: [
                         Text(
                           page == null
-                              ? 'Bilgisayardan proje seç'
+                              ? context.tr(
+                                  'Choose a project from your computer',
+                                  'Bilgisayardan proje seç',
+                                )
                               : directory?['displayName']?.toString() ??
-                                    'Klasör',
+                                    context.tr('Folder', 'Klasör'),
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         if (directory?['path'] != null)
@@ -395,7 +415,9 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                         if (page != null && page!['parent'] != null)
                           ListTile(
                             leading: const Icon(Icons.arrow_upward),
-                            title: const Text('Üst klasör'),
+                            title: Text(
+                              context.tr('Parent folder', 'Üst klasör'),
+                            ),
                             onTap: () async {
                               final next = await widget.controller
                                   .workspaceDirectory('${page!['parent']}');
@@ -434,7 +456,9 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
                           if (sheetContext.mounted) Navigator.pop(sheetContext);
                         },
                         icon: const Icon(Icons.folder_open),
-                        label: const Text('Bu klasörü aç'),
+                        label: Text(
+                          context.tr('Open this folder', 'Bu klasörü aç'),
+                        ),
                       ),
                     ),
                 ],
@@ -467,18 +491,22 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
               children: [
                 Text(
-                  'Son görev',
+                  context.tr('Latest task', 'Son görev'),
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 16),
-                const _SectionLabel('SİZ'),
+                _SectionLabel(context.tr('YOU', 'SİZ')),
                 const SizedBox(height: 6),
-                Text(value['task']?.toString() ?? 'Görev bulunamadı.'),
+                Text(
+                  value['task']?.toString() ??
+                      context.tr('No task found.', 'Görev bulunamadı.'),
+                ),
                 const SizedBox(height: 24),
                 const _SectionLabel('CODEX'),
                 const SizedBox(height: 6),
                 Text(
-                  value['output']?.toString() ?? 'Henüz çıktı yok.',
+                  value['output']?.toString() ??
+                      context.tr('No output yet.', 'Henüz çıktı yok.'),
                   style: const TextStyle(height: 1.5),
                 ),
               ],
@@ -503,21 +531,24 @@ class _MobilePocketScreenState extends State<MobilePocketScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Güncelleme durumu',
+                context.tr('Update status', 'Güncelleme durumu'),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 18),
               _DetailRow(
-                label: 'Durum',
-                value: '${value['state'] ?? 'bilinmiyor'}',
+                label: context.tr('Status', 'Durum'),
+                value:
+                    '${value['state'] ?? context.tr('unknown', 'bilinmiyor')}',
               ),
               _DetailRow(
-                label: 'Kurulu',
-                value: '${value['currentVersion'] ?? 'bilinmiyor'}',
+                label: context.tr('Installed', 'Kurulu'),
+                value:
+                    '${value['currentVersion'] ?? context.tr('unknown', 'bilinmiyor')}',
               ),
               _DetailRow(
-                label: 'Mevcut',
-                value: '${value['availableVersion'] ?? 'bilinmiyor'}',
+                label: context.tr('Available', 'Mevcut'),
+                value:
+                    '${value['availableVersion'] ?? context.tr('unknown', 'bilinmiyor')}',
               ),
             ],
           ),
@@ -579,17 +610,18 @@ class _ChatPage extends StatelessWidget {
                   key: ValueKey(data['selectedConversationId']),
                   initialValue: selectedConversation?['id']?.toString(),
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Aktif sohbet',
-                    prefixIcon: Icon(Icons.forum_outlined),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: InputDecoration(
+                    labelText: context.tr('Active chat', 'Aktif sohbet'),
+                    prefixIcon: const Icon(Icons.forum_outlined),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   items: [
                     for (final conversation in conversations)
                       DropdownMenuItem(
                         value: '${conversation['id']}',
                         child: Text(
-                          conversation['title']?.toString() ?? 'Sohbet',
+                          conversation['title']?.toString() ??
+                              context.tr('Chat', 'Sohbet'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -672,13 +704,23 @@ class _ProjectsPage extends StatelessWidget {
           key: const Key('mobile-browse-projects'),
           onPressed: busy ? null : browse,
           icon: const Icon(Icons.folder_open),
-          label: const Text('Bilgisayardan proje seç'),
+          label: Text(
+            context.tr(
+              'Choose a project from your computer',
+              'Bilgisayardan proje seç',
+            ),
+          ),
         ),
         const SizedBox(height: 24),
-        const _SectionLabel('PROJELER'),
+        _SectionLabel(context.tr('PROJECTS', 'PROJELER')),
         const SizedBox(height: 8),
         if (workspaces.isEmpty)
-          const _EmptyCard(text: 'Henüz açılmış bir proje yok.'),
+          _EmptyCard(
+            text: context.tr(
+              'No project has been opened yet.',
+              'Henüz açılmış bir proje yok.',
+            ),
+          ),
         for (final workspace in workspaces)
           Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -702,11 +744,16 @@ class _ProjectsPage extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 22),
-        const _SectionLabel('BU PROJEDEKİ SOHBETLER'),
+        _SectionLabel(
+          context.tr('CHATS IN THIS PROJECT', 'BU PROJEDEKİ SOHBETLER'),
+        ),
         const SizedBox(height: 8),
         if (conversations.isEmpty)
-          const _EmptyCard(
-            text: 'Sohbet yok. Sohbet ekranındaki + düğmesiyle oluşturun.',
+          _EmptyCard(
+            text: context.tr(
+              'No chats yet. Create one with the + button on the Chat screen.',
+              'Sohbet yok. Sohbet ekranındaki + düğmesiyle oluşturun.',
+            ),
           ),
         for (final conversation in conversations)
           Card(
@@ -718,7 +765,8 @@ class _ProjectsPage extends StatelessWidget {
                     : Icons.chat_bubble_outline,
               ),
               title: Text(
-                conversation['title']?.toString() ?? 'Sohbet',
+                conversation['title']?.toString() ??
+                    context.tr('Chat', 'Sohbet'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -769,7 +817,9 @@ class _ControlPage extends StatelessWidget {
               child: _StatusCard(
                 icon: Icons.computer,
                 label: 'Pocket',
-                value: data['pocket'] == 'ready' ? 'Bağlı' : 'Çevrimdışı',
+                value: data['pocket'] == 'ready'
+                    ? context.tr('Connected', 'Bağlı')
+                    : context.tr('Offline', 'Çevrimdışı'),
                 healthy: data['pocket'] == 'ready',
               ),
             ),
@@ -779,8 +829,8 @@ class _ControlPage extends StatelessWidget {
                 icon: Icons.send_outlined,
                 label: 'Telegram',
                 value: telegram?['state'] == 'ready'
-                    ? 'Bağlı'
-                    : '${telegram?['state'] ?? 'Kapalı'}',
+                    ? context.tr('Connected', 'Bağlı')
+                    : '${telegram?['state'] ?? context.tr('Off', 'Kapalı')}',
                 healthy: telegram?['state'] == 'ready',
               ),
             ),
@@ -793,7 +843,9 @@ class _ControlPage extends StatelessWidget {
               child: _StatusCard(
                 icon: Icons.memory,
                 label: 'Codex',
-                value: codex?['version']?.toString() ?? 'Çevrimdışı',
+                value:
+                    codex?['version']?.toString() ??
+                    context.tr('Offline', 'Çevrimdışı'),
                 healthy: codex?['version'] != null,
               ),
             ),
@@ -801,53 +853,73 @@ class _ControlPage extends StatelessWidget {
             Expanded(
               child: _StatusCard(
                 icon: Icons.phone_android,
-                label: 'Telefon',
+                label: context.tr('Phone', 'Telefon'),
                 value: pairing?['state'] == 'paired'
-                    ? 'Eşleşti'
-                    : '${pairing?['state'] ?? 'Bekliyor'}',
+                    ? context.tr('Paired', 'Eşleşti')
+                    : '${pairing?['state'] ?? context.tr('Waiting', 'Bekliyor')}',
                 healthy: pairing?['state'] == 'paired',
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        const _SectionLabel('HIZLI İŞLEMLER'),
+        _SectionLabel(context.tr('QUICK ACTIONS', 'HIZLI İŞLEMLER')),
         const SizedBox(height: 8),
         _ActionTile(
           icon: Icons.history,
-          title: 'Son görev ve çıktı',
-          subtitle: 'Telegram /history karşılığı',
+          title: context.tr('Latest task and output', 'Son görev ve çıktı'),
+          subtitle: context.tr(
+            'Equivalent to Telegram /history',
+            'Telegram /history karşılığı',
+          ),
           onTap: busy ? null : showHistory,
         ),
         _ActionTile(
           icon: Icons.system_update_alt,
-          title: 'Güncellemeleri denetle',
-          subtitle: 'Salt okunur sürüm kontrolü',
+          title: context.tr('Check for updates', 'Güncellemeleri denetle'),
+          subtitle: context.tr(
+            'Read-only version check',
+            'Salt okunur sürüm kontrolü',
+          ),
           onTap: busy ? null : showUpdates,
         ),
         _ActionTile(
           icon: Icons.stop_circle_outlined,
-          title: 'Aktif görevi durdur',
-          subtitle: 'Telegram /stop karşılığı',
+          title: context.tr('Stop active task', 'Aktif görevi durdur'),
+          subtitle: context.tr(
+            'Equivalent to Telegram /stop',
+            'Telegram /stop karşılığı',
+          ),
           destructive: true,
           onTap: busy ? null : stop,
         ),
         _ActionTile(
           icon: Icons.refresh,
-          title: 'Durumu yenile',
-          subtitle: 'Bilgisayar ve runtime bilgisini tekrar al',
+          title: context.tr('Refresh status', 'Durumu yenile'),
+          subtitle: context.tr(
+            'Reload computer and runtime status',
+            'Bilgisayar ve runtime bilgisini tekrar al',
+          ),
           onTap: busy ? null : refresh,
         ),
         const SizedBox(height: 24),
-        const _SectionLabel('TARAYICI'),
+        _SectionLabel(context.tr('BROWSER', 'TARAYICI')),
         const SizedBox(height: 8),
-        const Card(
+        Card(
           child: ListTile(
             enabled: false,
-            leading: Icon(Icons.image_not_supported_outlined),
-            title: Text('Ekran görüntüsü kullanılamıyor'),
+            leading: const Icon(Icons.image_not_supported_outlined),
+            title: Text(
+              context.tr(
+                'Screenshot unavailable',
+                'Ekran görüntüsü kullanılamıyor',
+              ),
+            ),
             subtitle: Text(
-              'Windows Browser Gate 2 ve production BrowserManager tamamlandığında açılacak.',
+              context.tr(
+                'Available after Windows Browser Gate 2 and the production BrowserManager are complete.',
+                'Windows Browser Gate 2 ve production BrowserManager tamamlandığında açılacak.',
+              ),
             ),
           ),
         ),
@@ -890,9 +962,9 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(
               user
-                  ? 'SİZ'
+                  ? context.tr('YOU', 'SİZ')
                   : live
-                  ? 'CODEX · CANLI'
+                  ? context.tr('CODEX · LIVE', 'CODEX · CANLI')
                   : 'CODEX',
               style: TextStyle(
                 fontSize: 10,
@@ -939,7 +1011,7 @@ class _Composer extends StatelessWidget {
             key: const Key('mobile-stop'),
             onPressed: enabled ? stop : null,
             icon: const Icon(Icons.stop_rounded),
-            tooltip: 'Durdur',
+            tooltip: context.tr('Stop', 'Durdur'),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -952,8 +1024,14 @@ class _Composer extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: enabled
-                    ? 'Codex’e bir görev yazın…'
-                    : 'Önce bir sohbet seçin',
+                    ? context.tr(
+                        'Ask Codex to do something…',
+                        'Codex’e bir görev yazın…',
+                      )
+                    : context.tr(
+                        'Select a chat first',
+                        'Önce bir sohbet seçin',
+                      ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
@@ -966,7 +1044,7 @@ class _Composer extends StatelessWidget {
             key: const Key('mobile-send'),
             onPressed: enabled ? send : null,
             icon: const Icon(Icons.arrow_upward_rounded),
-            tooltip: 'Gönder',
+            tooltip: context.tr('Send', 'Gönder'),
           ),
         ],
       ),
@@ -993,19 +1071,19 @@ class _ApprovalCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.shield_outlined, color: Color(0xFFFFBE68)),
-              SizedBox(width: 8),
+              const Icon(Icons.shield_outlined, color: Color(0xFFFFBE68)),
+              const SizedBox(width: 8),
               Text(
-                'Onayınız gerekiyor',
-                style: TextStyle(fontWeight: FontWeight.w700),
+                context.tr('Approval required', 'Onayınız gerekiyor'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '${approval['command'] ?? approval['grantRoot'] ?? approval['reason'] ?? 'Codex bir işlem için izin istiyor.'}',
+            '${approval['command'] ?? approval['grantRoot'] ?? approval['reason'] ?? context.tr('Codex is requesting permission for an action.', 'Codex bir işlem için izin istiyor.')}',
             maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1017,7 +1095,7 @@ class _ApprovalCard extends StatelessWidget {
                   onPressed: busy
                       ? null
                       : () => decide('${approval['id']}', false),
-                  child: const Text('Reddet'),
+                  child: Text(context.tr('Deny', 'Reddet')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1026,7 +1104,7 @@ class _ApprovalCard extends StatelessWidget {
                   onPressed: busy
                       ? null
                       : () => decide('${approval['id']}', true),
-                  child: const Text('Onayla'),
+                  child: Text(context.tr('Approve', 'Onayla')),
                 ),
               ),
             ],
@@ -1047,11 +1125,18 @@ class _EmptyConversationHeader extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          const Expanded(child: Text('Bu projede henüz sohbet yok.')),
+          Expanded(
+            child: Text(
+              context.tr(
+                'There are no chats in this project yet.',
+                'Bu projede henüz sohbet yok.',
+              ),
+            ),
+          ),
           FilledButton.tonalIcon(
             onPressed: enabled ? create : null,
             icon: const Icon(Icons.add),
-            label: const Text('Yeni'),
+            label: Text(context.tr('New', 'Yeni')),
           ),
         ],
       ),
@@ -1084,9 +1169,18 @@ class _ChatEmpty extends StatelessWidget {
           Text(
             hasWorkspace
                 ? hasConversation
-                      ? 'Mesajınızı yazıp Codex’i çalıştırın.'
-                      : 'Yeni bir sohbet oluşturun.'
-                : 'Projeler bölümünden bir workspace seçin.',
+                      ? context.tr(
+                          'Write a message to start Codex.',
+                          'Mesajınızı yazıp Codex’i çalıştırın.',
+                        )
+                      : context.tr(
+                          'Create a new chat.',
+                          'Yeni bir sohbet oluşturun.',
+                        )
+                : context.tr(
+                    'Select a workspace from Projects.',
+                    'Projeler bölümünden bir workspace seçin.',
+                  ),
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white60),
           ),
@@ -1095,7 +1189,7 @@ class _ChatEmpty extends StatelessWidget {
             FilledButton.icon(
               onPressed: create,
               icon: const Icon(Icons.add_comment_outlined),
-              label: const Text('Yeni sohbet'),
+              label: Text(context.tr('New chat', 'Yeni sohbet')),
             ),
           ],
         ],
@@ -1114,9 +1208,14 @@ class _ConnectionWarning extends StatelessWidget {
     child: ListTile(
       dense: true,
       leading: const Icon(Icons.cloud_off_outlined),
-      title: const Text('Bilgisayar bağlantısı kesildi'),
+      title: Text(
+        context.tr('Computer disconnected', 'Bilgisayar bağlantısı kesildi'),
+      ),
       subtitle: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: TextButton(onPressed: reconnect, child: const Text('Bağlan')),
+      trailing: TextButton(
+        onPressed: reconnect,
+        child: Text(context.tr('Connect', 'Bağlan')),
+      ),
     ),
   );
 }
@@ -1127,6 +1226,7 @@ class _MobileOffline extends StatelessWidget {
   final Future<void> Function() reconnect;
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(actions: const [LanguageMenuButton(), SizedBox(width: 8)]),
     body: SafeArea(
       child: Center(
         child: Padding(
@@ -1141,7 +1241,7 @@ class _MobileOffline extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                'Bilgisayar çevrimdışı',
+                context.tr('Computer offline', 'Bilgisayar çevrimdışı'),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
@@ -1154,7 +1254,7 @@ class _MobileOffline extends StatelessWidget {
               FilledButton.icon(
                 onPressed: reconnect,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Yeniden bağlan'),
+                label: Text(context.tr('Reconnect', 'Yeniden bağlan')),
               ),
             ],
           ),
@@ -1293,14 +1393,14 @@ class _DetailRow extends StatelessWidget {
   );
 }
 
-String _effortLabel(String effort) => switch (effort) {
-  'none' => 'Yok',
-  'minimal' => 'En düşük',
-  'low' => 'Düşük',
-  'medium' => 'Orta',
-  'high' => 'Yüksek',
-  'xhigh' => 'Çok yüksek',
-  'max' => 'Maksimum',
+String _effortLabel(BuildContext context, String effort) => switch (effort) {
+  'none' => context.tr('None', 'Yok'),
+  'minimal' => context.tr('Minimal', 'En düşük'),
+  'low' => context.tr('Low', 'Düşük'),
+  'medium' => context.tr('Medium', 'Orta'),
+  'high' => context.tr('High', 'Yüksek'),
+  'xhigh' => context.tr('Extra high', 'Çok yüksek'),
+  'max' => context.tr('Maximum', 'Maksimum'),
   'ultra' => 'Ultra',
   _ => effort,
 };

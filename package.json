@@ -1,6 +1,6 @@
 {
   "name": "vscode-codex-remote-control",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Remote control for an isolated VS Code Codex session on macOS, Telegram, and Android",
   "type": "module",

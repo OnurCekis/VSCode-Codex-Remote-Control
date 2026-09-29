@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'pocket_bridge.dart';
+import 'app_localizations.dart';
 
 class TelegramOnboarding extends StatefulWidget {
   const TelegramOnboarding({super.key, required this.controller});
@@ -47,7 +48,11 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
       Uri.parse(url),
       mode: LaunchMode.externalApplication,
     );
-    if (!launched && mounted) _show('Bağlantı açılamadı: $url');
+    if (!launched && mounted) {
+      _show(
+        context.tr('Could not open link: $url', 'Bağlantı açılamadı: $url'),
+      );
+    }
   }
 
   void _show(String value, {bool ok = false}) {
@@ -62,15 +67,24 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
 
   Future<void> _openOwnBot() async {
     if (token.text.trim().isEmpty) {
-      _show('Önce BotFather tokenını girin.');
+      _show(
+        context.tr(
+          'Enter the BotFather token first.',
+          'Önce BotFather tokenını girin.',
+        ),
+      );
       return;
     }
     setState(() => busy = true);
     try {
       final result = await widget.controller.telegramBot(token.text.trim());
       await _open('${result['botUrl']}');
+      if (!mounted) return;
       _show(
-        '@${result['botUsername']} açıldı. Sohbette /start gönderin, sonra ID’mi bul düğmesine basın.',
+        context.tr(
+          '@${result['botUsername']} opened. Send /start in the chat, then select Find my ID.',
+          '@${result['botUsername']} açıldı. Sohbette /start gönderin, sonra ID’mi bul düğmesine basın.',
+        ),
       );
     } catch (error) {
       _show(_friendly(error));
@@ -81,7 +95,12 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
 
   Future<void> _discover() async {
     if (token.text.trim().isEmpty) {
-      _show('Önce BotFather tokenını girin.');
+      _show(
+        context.tr(
+          'Enter the BotFather token first.',
+          'Önce BotFather tokenını girin.',
+        ),
+      );
       return;
     }
     setState(() => busy = true);
@@ -89,8 +108,15 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
       final result = await widget.controller.discoverTelegram(
         token.text.trim(),
       );
+      if (!mounted) return;
       userId.text = '${result['userId']}';
-      _show('${result['displayName']} için Telegram ID bulundu.', ok: true);
+      _show(
+        context.tr(
+          'Telegram ID found for ${result['displayName']}.',
+          '${result['displayName']} için Telegram ID bulundu.',
+        ),
+        ok: true,
+      );
     } catch (error) {
       _show(_friendly(error));
     } finally {
@@ -100,7 +126,12 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
 
   Future<void> _verify() async {
     if (token.text.trim().isEmpty || userId.text.trim().isEmpty) {
-      _show('Bot tokenı ve Telegram kullanıcı ID’si zorunludur.');
+      _show(
+        context.tr(
+          'Bot token and Telegram user ID are required.',
+          'Bot tokenı ve Telegram kullanıcı ID’si zorunludur.',
+        ),
+      );
       return;
     }
     setState(() => busy = true);
@@ -109,9 +140,13 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
         token.text.trim(),
         userId.text.trim(),
       );
+      if (!mounted) return;
       token.clear();
       _show(
-        '@${result['botUsername']} test mesajını gönderdi. Telegram bağlantısı doğrulandı ve güvenli biçimde kaydedildi.',
+        context.tr(
+          '@${result['botUsername']} sent the test message. Telegram was verified and saved securely.',
+          '@${result['botUsername']} test mesajını gönderdi. Telegram bağlantısı doğrulandı ve güvenli biçimde kaydedildi.',
+        ),
         ok: true,
       );
     } catch (error) {
@@ -130,6 +165,9 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
       final desktop =
           widget.controller.data?['desktop'] as Map<String, dynamic>?;
       return Scaffold(
+        appBar: AppBar(
+          actions: const [LanguageMenuButton(), SizedBox(width: 8)],
+        ),
         body: Center(
           child: Card(
             child: Padding(
@@ -146,20 +184,26 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Telegram kurulumu tamamlandı',
+                      context.tr(
+                        'Telegram setup complete',
+                        'Telegram kurulumu tamamlandı',
+                      ),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       desktop?['detail']?.toString() ??
-                          'Pocket Host, Telegram ve masaüstü bridge otomatik hazırlanıyor. İlk kurulum birkaç dakika sürebilir.',
+                          context.tr(
+                            'Pocket Host, Telegram, and the desktop bridge are being prepared automatically. First setup can take a few minutes.',
+                            'Pocket Host, Telegram ve masaüstü bridge otomatik hazırlanıyor. İlk kurulum birkaç dakika sürebilir.',
+                          ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
                       onPressed: widget.controller.connect,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Şimdi kontrol et'),
+                      label: Text(context.tr('Check now', 'Şimdi kontrol et')),
                     ),
                   ],
                 ),
@@ -170,6 +214,7 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
       );
     }
     return Scaffold(
+      appBar: AppBar(actions: const [LanguageMenuButton(), SizedBox(width: 8)]),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -185,28 +230,41 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                       const Icon(Icons.telegram, size: 54),
                       const SizedBox(height: 16),
                       Text(
-                        'VS Code Codex Remote Control’a hoş geldiniz',
+                        context.tr(
+                          'Welcome to VS Code Codex Remote Control',
+                          'VS Code Codex Remote Control’a hoş geldiniz',
+                        ),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Uygulama yalnızca size ait bir Telegram botu ve doğrulanmış private Telegram hesabıyla çalışır. Kurulum tamamlanmadan Pocket kontrolleri açılmaz.',
+                      Text(
+                        context.tr(
+                          'The app works only with your own Telegram bot and a verified private Telegram account. Pocket controls remain locked until setup is complete.',
+                          'Uygulama yalnızca size ait bir Telegram botu ve doğrulanmış private Telegram hesabıyla çalışır. Kurulum tamamlanmadan Pocket kontrolleri açılmaz.',
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 28),
-                      const _Step(
+                      _Step(
                         number: '1',
-                        title: 'Telegram botunu oluşturun',
-                        body:
-                            'BotFather’da /newbot komutunu kullanın ve verilen HTTP API tokenını kopyalayın.',
+                        title: context.tr(
+                          'Create your Telegram bot',
+                          'Telegram botunu oluşturun',
+                        ),
+                        body: context.tr(
+                          'Use /newbot in BotFather and copy the HTTP API token it provides.',
+                          'BotFather’da /newbot komutunu kullanın ve verilen HTTP API tokenını kopyalayın.',
+                        ),
                       ),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
                           onPressed: () => _open('https://t.me/BotFather'),
                           icon: const Icon(Icons.open_in_new),
-                          label: const Text('BotFather’ı aç'),
+                          label: Text(
+                            context.tr('Open BotFather', 'BotFather’ı aç'),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -217,14 +275,19 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                         autocorrect: false,
                         enableSuggestions: false,
                         decoration: InputDecoration(
-                          labelText: 'BotFather tokenı',
+                          labelText: context.tr(
+                            'BotFather token',
+                            'BotFather tokenı',
+                          ),
                           hintText: '123456789:AA…',
                           suffixIcon: IconButton(
                             onPressed: () => setState(() => obscure = !obscure),
                             icon: Icon(
                               obscure ? Icons.visibility : Icons.visibility_off,
                             ),
-                            tooltip: obscure ? 'Göster' : 'Gizle',
+                            tooltip: obscure
+                                ? context.tr('Show', 'Göster')
+                                : context.tr('Hide', 'Gizle'),
                           ),
                         ),
                       ),
@@ -234,24 +297,35 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                         child: OutlinedButton.icon(
                           onPressed: busy ? null : _openOwnBot,
                           icon: const Icon(Icons.telegram),
-                          label: const Text('Botumu aç'),
+                          label: Text(context.tr('Open my bot', 'Botumu aç')),
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const _Step(
+                      _Step(
                         number: '2',
-                        title: 'Telegram kimliğinizi doğrulayın',
-                        body:
-                            'Telegram’da yeni botunuzu açıp /start gönderin. Ardından ID’mi bul düğmesine basın. Grup mesajları kabul edilmez.',
+                        title: context.tr(
+                          'Verify your Telegram identity',
+                          'Telegram kimliğinizi doğrulayın',
+                        ),
+                        body: context.tr(
+                          'Open your new bot in Telegram and send /start. Then select Find my ID. Group messages are not accepted.',
+                          'Telegram’da yeni botunuzu açıp /start gönderin. Ardından ID’mi bul düğmesine basın. Grup mesajları kabul edilmez.',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         key: const Key('telegram-user-id'),
                         controller: userId,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Telegram kullanıcı ID’si',
-                          hintText: 'Yalnızca sayısal ID',
+                        decoration: InputDecoration(
+                          labelText: context.tr(
+                            'Telegram user ID',
+                            'Telegram kullanıcı ID’si',
+                          ),
+                          hintText: context.tr(
+                            'Numeric ID only',
+                            'Yalnızca sayısal ID',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -260,15 +334,20 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                         child: OutlinedButton.icon(
                           onPressed: busy ? null : _discover,
                           icon: const Icon(Icons.person_search_outlined),
-                          label: const Text('ID’mi bul'),
+                          label: Text(context.tr('Find my ID', 'ID’mi bul')),
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const _Step(
+                      _Step(
                         number: '3',
-                        title: 'Geri dönüş testini tamamlayın',
-                        body:
-                            'Pocket bot kimliğini kontrol eder ve yalnızca verdiğiniz ID’ye bir test mesajı gönderir. Test başarısızsa bilgiler kaydedilmez.',
+                        title: context.tr(
+                          'Complete the connection test',
+                          'Geri dönüş testini tamamlayın',
+                        ),
+                        body: context.tr(
+                          'Pocket verifies the bot identity and sends a test message only to the ID you provided. Nothing is saved if the test fails.',
+                          'Pocket bot kimliğini kontrol eder ve yalnızca verdiğiniz ID’ye bir test mesajı gönderir. Test başarısızsa bilgiler kaydedilmez.',
+                        ),
                       ),
                       const SizedBox(height: 16),
                       FilledButton.icon(
@@ -282,7 +361,12 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                                 ),
                               )
                             : const Icon(Icons.verified_user_outlined),
-                        label: const Text('Bağlantıyı test et ve kaydet'),
+                        label: Text(
+                          context.tr(
+                            'Test connection and save',
+                            'Bağlantıyı test et ve kaydet',
+                          ),
+                        ),
                       ),
                       if (message != null) ...[
                         const SizedBox(height: 16),
@@ -300,8 +384,11 @@ class _TelegramOnboardingState extends State<TelegramOnboarding> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      const Text(
-                        'Token yalnızca bu Mac’teki owner-only yapılandırma dosyasında tutulur; uygulama ekranında, API yanıtlarında veya loglarda geri gösterilmez.',
+                      Text(
+                        context.tr(
+                          'The token is stored only in an owner-only configuration file on this Mac. It is never shown again in the app, API responses, or logs.',
+                          'Token yalnızca bu Mac’teki owner-only yapılandırma dosyasında tutulur; uygulama ekranında, API yanıtlarında veya loglarda geri gösterilmez.',
+                        ),
                         style: TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     ],

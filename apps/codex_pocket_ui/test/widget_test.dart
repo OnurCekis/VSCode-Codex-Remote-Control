@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:codex_pocket_ui/main.dart';
 import 'package:codex_pocket_ui/pocket_bridge.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeApi implements PocketApi {
@@ -21,9 +23,12 @@ class FakeApi implements PocketApi {
         'runtimeReady': true,
       },
       'workspaces': {
-        'activeWorkspace': {'path': '/project'},
+        'activeWorkspace': {
+          'path': '/Projects/sample-app',
+          'displayName': 'Sample App',
+        },
         'recentWorkspaces': [
-          {'path': '/project', 'displayName': 'project'},
+          {'path': '/Projects/sample-app', 'displayName': 'Sample App'},
         ],
       },
       'conversations': [
@@ -72,7 +77,20 @@ class FakeApi implements PocketApi {
     calls.add(
       '$route:${body['prompt'] ?? body['path'] ?? body['model'] ?? ''}:${body['reasoningEffort'] ?? ''}',
     );
-    if (route == '/v1/pairing/start') return {'code': 'ABCD1234'};
+    if (route == '/v1/pairing/start') {
+      return {
+        'telegramCode': 'DEMO1234',
+        'qr': {
+          'v': 1,
+          'relay': 'wss://relay.example.invalid/connect',
+          'pairingId': 'public-preview-demo',
+          'secret': 'not-a-real-secret',
+          'expiresAt': '2030-01-01T12:00:00Z',
+          'desktopPublicKey': 'public-demo-key',
+          'botUsername': 'example_remote_bot',
+        },
+      };
+    }
     if (route == '/v1/onboarding/telegram/discover') {
       return {'userId': 42, 'displayName': '@pocket_user'};
     }
@@ -97,6 +115,14 @@ class FakeApi implements PocketApi {
 }
 
 void main() {
+  Future<void> capture(WidgetTester tester, String name) async {
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byKey(const Key('public-screenshot-boundary')),
+      matchesGoldenFile('../../../docs/images/$name.png'),
+    );
+  }
+
   testWidgets('renders status, canonical output and common controls', (
     tester,
   ) async {
@@ -138,12 +164,12 @@ void main() {
     final api = FakeApi();
     await tester.pumpWidget(CodexPocketApp(api: api));
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Open Project'), findsOneWidget);
-    await tester.tap(find.byTooltip('Yeni sohbet'));
+    expect(find.byTooltip('Open project'), findsOneWidget);
+    await tester.tap(find.byTooltip('New chat'));
     await tester.pumpAndSettle();
     expect(find.text('GPT-5.6 Sol'), findsOneWidget);
-    expect(find.text('Orta'), findsOneWidget);
-    await tester.tap(find.text('Sohbet oluştur'));
+    expect(find.text('Medium'), findsOneWidget);
+    await tester.tap(find.text('Create chat'));
     await tester.pumpAndSettle();
     expect(api.calls, contains('/v1/conversations:gpt-5.6-sol:medium'));
   });
@@ -200,12 +226,12 @@ void main() {
     await tester.pumpWidget(CodexPocketApp(api: api, mobileMode: true));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sohbet'), findsWidgets);
-    expect(find.text('Projeler'), findsOneWidget);
-    expect(find.text('Kontrol'), findsOneWidget);
+    expect(find.text('Chat'), findsWidgets);
+    expect(find.text('Projects'), findsOneWidget);
+    expect(find.text('Control'), findsOneWidget);
     expect(find.text('First paragraph.\n\nSecond paragraph.'), findsOneWidget);
-    expect(find.text('Onayla'), findsOneWidget);
-    expect(find.text('Reddet'), findsOneWidget);
+    expect(find.text('Approve'), findsOneWidget);
+    expect(find.text('Deny'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('mobile-prompt')),
@@ -215,7 +241,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.calls, contains('/v1/tasks:Telefondan çalıştır:'));
 
-    await tester.tap(find.text('Onayla'));
+    await tester.tap(find.text('Approve'));
     await tester.pumpAndSettle();
     expect(
       api.calls.any(
@@ -227,7 +253,7 @@ void main() {
     await tester.tap(find.byKey(const Key('mobile-new-chat')));
     await tester.pumpAndSettle();
     expect(find.text('GPT-5.6 Sol'), findsOneWidget);
-    expect(find.text('Orta'), findsOneWidget);
+    expect(find.text('Medium'), findsOneWidget);
     await tester.tap(find.byKey(const Key('mobile-create-chat')));
     await tester.pumpAndSettle();
     expect(api.calls, contains('/v1/conversations:gpt-5.6-sol:medium'));
@@ -242,23 +268,20 @@ void main() {
     await tester.pumpWidget(CodexPocketApp(api: api, mobileMode: true));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Projeler'));
+    await tester.tap(find.text('Projects'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('mobile-browse-projects')), findsOneWidget);
-    expect(find.text('BU PROJEDEKİ SOHBETLER'), findsOneWidget);
+    expect(find.text('CHATS IN THIS PROJECT'), findsOneWidget);
 
-    await tester.tap(find.text('Kontrol'));
+    await tester.tap(find.text('Control'));
     await tester.pumpAndSettle();
-    expect(find.text('Son görev ve çıktı'), findsOneWidget);
-    expect(find.text('Güncellemeleri denetle'), findsOneWidget);
-    expect(find.text('Aktif görevi durdur'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Ekran görüntüsü kullanılamıyor'),
-      250,
-    );
-    expect(find.text('Ekran görüntüsü kullanılamıyor'), findsOneWidget);
+    expect(find.text('Latest task and output'), findsOneWidget);
+    expect(find.text('Check for updates'), findsOneWidget);
+    expect(find.text('Stop active task'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Screenshot unavailable'), 250);
+    expect(find.text('Screenshot unavailable'), findsOneWidget);
 
-    await tester.tap(find.text('Aktif görevi durdur'));
+    await tester.tap(find.text('Stop active task'));
     await tester.pumpAndSettle();
     expect(
       api.calls.any((value) => value.startsWith('/v1/tasks/stop')),
@@ -274,13 +297,16 @@ void main() {
     final api = FakeApi()..telegramConfigured = false;
     await tester.pumpWidget(CodexPocketApp(api: api));
     await tester.pumpAndSettle();
-    expect(find.text('VS Code Codex Remote Control’a hoş geldiniz'), findsOneWidget);
+    expect(
+      find.text('Welcome to VS Code Codex Remote Control'),
+      findsOneWidget,
+    );
     expect(find.text('Workspaces'), findsNothing);
     await tester.enterText(
       find.byKey(const Key('telegram-token')),
       ['123456', 'abcdefghijklmnopqrstuvwxyzABCDE'].join(':'),
     );
-    await tester.tap(find.text('ID’mi bul'));
+    await tester.tap(find.text('Find my ID'));
     await tester.pumpAndSettle();
     expect(find.text('42'), findsOneWidget);
     await tester.ensureVisible(find.byKey(const Key('verify-telegram')));
@@ -294,5 +320,92 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  testWidgets('language menu switches between English and Turkish', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(CodexPocketApp(api: FakeApi(), mobileMode: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Chat'), findsWidgets);
+    await tester.tap(find.byTooltip('Language'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(CheckedPopupMenuItem<String>, 'Türkçe'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Sohbet'), findsWidgets);
+    expect(find.text('Projeler'), findsOneWidget);
+  });
+
+  testWidgets('generates public screenshots from synthetic English data', (
+    tester,
+  ) async {
+    if (!const bool.fromEnvironment('UPDATE_PUBLIC_SCREENSHOTS')) return;
+    await tester.runAsync(() async {
+      final fontBytes = await File(
+        '/System/Library/Fonts/Supplemental/Arial.ttf',
+      ).readAsBytes();
+      await (FontLoader(
+        'PublicPreview',
+      )..addFont(Future.value(ByteData.sublistView(fontBytes)))).load();
+      var directory = File(Platform.resolvedExecutable).parent;
+      File? materialIcons;
+      while (directory.parent.path != directory.path) {
+        final candidate = File(
+          '${directory.path}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+        );
+        if (await candidate.exists()) {
+          materialIcons = candidate;
+          break;
+        }
+        directory = directory.parent;
+      }
+      if (materialIcons == null) {
+        throw StateError('Flutter Material Icons font was not found.');
+      }
+      final iconBytes = await materialIcons.readAsBytes();
+      await (FontLoader(
+        'MaterialIcons',
+      )..addFont(Future.value(ByteData.sublistView(iconBytes)))).load();
+    });
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    final desktopApi = FakeApi();
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: const Key('public-screenshot-boundary'),
+        child: CodexPocketApp(api: desktopApi, fontFamily: 'PublicPreview'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pair phone'));
+    await tester.pumpAndSettle();
+    await capture(tester, 'desktop-qr-pairing');
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: const Key('public-screenshot-boundary'),
+        child: CodexPocketApp(
+          api: FakeApi(),
+          mobileMode: true,
+          fontFamily: 'PublicPreview',
+        ),
+      ),
+    );
+    await capture(tester, 'android-chat');
+    await tester.tap(find.byIcon(Icons.folder_outlined).last);
+    await tester.pumpAndSettle();
+    await capture(tester, 'android-projects');
+    await tester.tap(find.byIcon(Icons.tune_outlined).last);
+    await tester.pumpAndSettle();
+    await capture(tester, 'android-controls');
+    await tester.binding.setSurfaceSize(null);
   });
 }

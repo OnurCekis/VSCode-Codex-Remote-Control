@@ -14,7 +14,7 @@ Control an isolated VS Code Codex session from a Mac, Telegram, or a paired Andr
 | iOS | Not supported yet |
 | Browser screenshot / URL | Not available yet |
 
-The first public prerelease is `v1.2.0-preview.1`. Its macOS DMG is ad-hoc signed and not notarized. Its Android APK is debug-signed; moving to a production signing key can require reinstalling the app. Background push notifications are unavailable unless a Firebase production configuration is supplied.
+The current public prerelease is `v1.2.1-preview.1`. The interface supports English and Turkish. Its macOS DMG is ad-hoc signed and not notarized. Its Android APK is debug-signed; moving to a production signing key can require reinstalling the app. Background push notifications are unavailable unless a Firebase production configuration is supplied.
 
 ## What it does
 

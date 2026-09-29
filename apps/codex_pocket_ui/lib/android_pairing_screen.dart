@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'mobile_pocket_api.dart';
 import 'pocket_bridge.dart';
 import 'push_notifications.dart';
+import 'app_localizations.dart';
 
 class AndroidPairingScreen extends StatefulWidget {
   const AndroidPairingScreen({super.key, required this.onPaired});
@@ -16,7 +17,7 @@ class AndroidPairingScreen extends StatefulWidget {
 class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
   bool busy = false;
   String? error;
-  String status = 'Bilgisayardaki VS Code Codex Remote QR kodunu okutun.';
+  String? statusKey;
   final scanner = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
   );
@@ -29,7 +30,7 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
   Future<void> _restore() async {
     setState(() {
       busy = true;
-      status = 'Kayıtlı bilgisayara bağlanılıyor…';
+      statusKey = 'restore';
     });
     final api = await MobilePocketApi.restore();
     if (!mounted) return;
@@ -47,7 +48,7 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
     }
     setState(() {
       busy = false;
-      status = 'Bilgisayardaki VS Code Codex Remote QR kodunu okutun.';
+      statusKey = null;
     });
   }
 
@@ -64,7 +65,7 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
     setState(() {
       busy = true;
       error = null;
-      status = 'Güvenli bağlantı kuruluyor…';
+      statusKey = 'secure';
     });
     await scanner.stop();
     try {
@@ -74,7 +75,7 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
         Map<String, dynamic>.from(decoded),
         (bot, code) async {
           if (mounted) {
-            setState(() => status = 'Telegram doğrulaması bekleniyor…');
+            setState(() => statusKey = 'telegram');
           }
           final uri = Uri.parse('https://t.me/$bot?start=p_$code');
           if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -90,7 +91,7 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
         setState(() {
           busy = false;
           error = value.toString();
-          status = 'QR kodunu yeniden okutun.';
+          statusKey = 'retry';
         });
       }
       await scanner.start();
@@ -99,7 +100,15 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('VS Code Codex Remote eşleştirme')),
+    appBar: AppBar(
+      title: Text(
+        context.tr(
+          'Pair VS Code Codex Remote',
+          'VS Code Codex Remote eşleştirme',
+        ),
+      ),
+      actions: const [LanguageMenuButton(), SizedBox(width: 8)],
+    ),
     body: SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -112,7 +121,28 @@ class _AndroidPairingScreenState extends State<AndroidPairingScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(status, textAlign: TextAlign.center),
+            Text(switch (statusKey) {
+              'restore' => context.tr(
+                'Connecting to the saved computer…',
+                'Kayıtlı bilgisayara bağlanılıyor…',
+              ),
+              'secure' => context.tr(
+                'Establishing a secure connection…',
+                'Güvenli bağlantı kuruluyor…',
+              ),
+              'telegram' => context.tr(
+                'Waiting for Telegram verification…',
+                'Telegram doğrulaması bekleniyor…',
+              ),
+              'retry' => context.tr(
+                'Scan the QR code again.',
+                'QR kodunu yeniden okutun.',
+              ),
+              _ => context.tr(
+                'Scan the VS Code Codex Remote QR code shown on your computer.',
+                'Bilgisayardaki VS Code Codex Remote QR kodunu okutun.',
+              ),
+            }, textAlign: TextAlign.center),
             if (busy)
               const Padding(
                 padding: EdgeInsets.all(12),

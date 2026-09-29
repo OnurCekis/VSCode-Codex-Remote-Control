@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.1-preview.1] - 2026-09-29
+
+### Changed
+
+- Added an in-app English/Turkish language selector across first-run setup, desktop controls, Android pairing, and Android remote-control screens.
+- Replaced public screenshots with English captures generated exclusively from synthetic demo data.
+- Added localization and screenshot-generation regression coverage.
+
 ## [1.2.0-preview.1] - 2026-09-28
 
 Initial public developer preview.
