@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.2-preview.1] - 2026-09-30
+
+### Fixed
+
+- Improved Android pairing recovery and reconnect behavior after temporary relay or desktop disconnects.
+- Serialized encrypted relay frame handling so out-of-order async decryption cannot break the mobile secure-channel sequence.
+- Added a first-run welcome screen; the camera now opens only after the user taps the QR pairing button.
+- QR pairing opens the Telegram bot's `/start` deep link; users do not need to type `/pair` manually (Telegram may require tapping Start once).
+
 ## [1.2.1-preview.1] - 2026-09-29
 
 ### Changed

@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:codex_pocket_ui/main.dart';
 import 'package:codex_pocket_ui/pocket_bridge.dart';
+import 'package:codex_pocket_ui/android_pairing_screen.dart';
+import 'package:codex_pocket_ui/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class FakeApi implements PocketApi {
   final controller = StreamController<Map<String, dynamic>>.broadcast();
@@ -338,6 +341,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sohbet'), findsWidgets);
     expect(find.text('Projeler'), findsOneWidget);
+  });
+
+  testWidgets('Android first screen greets and waits for an explicit QR tap', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const secureStorage = MethodChannel(
+      'plugins.it_nomads.com/flutter_secure_storage',
+    );
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      secureStorage,
+      (_) async => null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        secureStorage,
+        null,
+      ),
+    );
+    await tester.pumpWidget(
+      AppLocaleScope(
+        controller: AppLocaleController('en'),
+        child: MaterialApp(home: AndroidPairingScreen(onPaired: (_) {})),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Hello!'), findsOneWidget);
+    expect(find.text('Scan QR code to pair'), findsOneWidget);
+    expect(find.byType(MobileScanner), findsNothing);
   });
 
   testWidgets('generates public screenshots from synthetic English data', (

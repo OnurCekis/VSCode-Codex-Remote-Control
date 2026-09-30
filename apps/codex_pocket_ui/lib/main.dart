@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:async';
 import 'dart:io';
 import 'pocket_bridge.dart';
 import 'pocket_screen.dart';
@@ -33,10 +34,23 @@ class CodexPocketApp extends StatefulWidget {
 class _CodexPocketAppState extends State<CodexPocketApp> {
   PocketController? controller;
   late final AppLocaleController localeController;
+  Timer? _mobileReconnectTimer;
+  bool _mobileReconnectInProgress = false;
+  DateTime _nextMobileReconnect = DateTime.fromMillisecondsSinceEpoch(0);
   @override
   void initState() {
     super.initState();
     localeController = widget.localeController ?? AppLocaleController();
+    final isMobile = widget.mobileMode ?? Platform.isAndroid;
+    if (widget.api == null && isMobile) {
+      _mobileReconnectTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (controller?.error != null &&
+            !_mobileReconnectInProgress &&
+            DateTime.now().isAfter(_nextMobileReconnect)) {
+          unawaited(_reconnectMobile());
+        }
+      });
+    }
     if (widget.api != null || !Platform.isAndroid) {
       controller = PocketController(widget.api ?? FilePocketApi())..connect();
     }
@@ -45,14 +59,39 @@ class _CodexPocketAppState extends State<CodexPocketApp> {
   @override
   void dispose() {
     controller?.dispose();
+    _mobileReconnectTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _reconnectMobile() async {
-    final restored = await MobilePocketApi.restore();
-    if (!mounted || restored == null) return;
-    controller?.dispose();
-    setState(() => controller = PocketController(restored)..connect());
+    if (_mobileReconnectInProgress) return;
+    _mobileReconnectInProgress = true;
+    try {
+      final restored = await MobilePocketApi.restore();
+      if (!mounted) {
+        restored?.close();
+        return;
+      }
+      if (restored == null) {
+        _nextMobileReconnect = DateTime.now().add(const Duration(seconds: 20));
+        return;
+      }
+      final previous = controller;
+      final next = PocketController(restored);
+      setState(() => controller = next);
+      await next.connect();
+      if (next.error != null) {
+        next.dispose();
+        if (mounted) setState(() => controller = previous);
+        _nextMobileReconnect = DateTime.now().add(const Duration(seconds: 20));
+      } else {
+        previous?.dispose();
+      }
+    } catch (_) {
+      _nextMobileReconnect = DateTime.now().add(const Duration(seconds: 20));
+    } finally {
+      _mobileReconnectInProgress = false;
+    }
   }
 
   @override

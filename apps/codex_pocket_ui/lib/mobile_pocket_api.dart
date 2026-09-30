@@ -18,6 +18,7 @@ class MobilePocketApi implements PocketApi {
   final _events = StreamController<Map<String, dynamic>>.broadcast();
   final _pending = <String, Completer<Map<String, dynamic>>>{};
   int _request = 0;
+  bool _connected = true;
 
   static Future<MobilePocketApi> pair(
     Map<String, dynamic> qr,
@@ -71,81 +72,101 @@ class MobilePocketApi implements PocketApi {
     await socket.ready;
     final accepted = Completer<void>();
     late final MobilePocketApi api;
+    var incoming = Future<void>.value();
+    void failed(Object error, StackTrace stack) {
+      if (!accepted.isCompleted) {
+        accepted.completeError(error, stack);
+      } else {
+        api._connectionLost(error);
+        unawaited(socket.sink.close(1002, 'Invalid encrypted message'));
+      }
+    }
+
     final subscription = socket.stream.listen(
-      (dynamic raw) async {
-        try {
-          final decoded = jsonDecode('$raw');
-          if (decoded is Map && decoded['type'] == 'relay.offline') {
-            throw StateError('Bilgisayar şu anda çevrimdışı.');
-          }
-          final message = await secure.open(
-            Map<String, dynamic>.from(decoded as Map),
-          );
-          if (message['type'] == 'pair.challenge') {
-            await challenge(
-              '${message['botUsername']}',
-              '${message['telegramCode']}',
-            );
-          } else if (message['type'] == 'pair.accepted') {
-            if (!accepted.isCompleted) {
-              accepted.complete();
+      (dynamic raw) {
+        incoming = incoming.then((_) async {
+          try {
+            final decoded = jsonDecode('$raw');
+            if (decoded is Map && decoded['type'] == 'relay.offline') {
+              throw StateError('Bilgisayar şu anda çevrimdışı.');
             }
-          } else if (message['type'] == 'response') {
-            final pending = api._pending.remove('${message['id']}');
-            if (message['error'] != null) {
-              pending?.completeError(StateError('${message['error']}'));
-            } else {
-              pending?.complete(
-                Map<String, dynamic>.from(
-                  (message['result'] as Map?) ?? const {},
-                ),
+            final message = await secure.open(
+              Map<String, dynamic>.from(decoded as Map),
+            );
+            if (message['type'] == 'pair.challenge') {
+              await challenge(
+                '${message['botUsername']}',
+                '${message['telegramCode']}',
+              );
+            } else if (message['type'] == 'pair.accepted') {
+              if (!accepted.isCompleted) {
+                accepted.complete();
+              }
+            } else if (message['type'] == 'response') {
+              final pending = api._pending.remove('${message['id']}');
+              if (message['error'] != null) {
+                pending?.completeError(StateError('${message['error']}'));
+              } else {
+                pending?.complete(
+                  Map<String, dynamic>.from(
+                    (message['result'] as Map?) ?? const {},
+                  ),
+                );
+              }
+            } else if (message['type'] == 'event') {
+              api._events.add(
+                Map<String, dynamic>.from(message['event'] as Map),
               );
             }
-          } else if (message['type'] == 'event') {
-            api._events.add(Map<String, dynamic>.from(message['event'] as Map));
+          } catch (error, stack) {
+            failed(error, stack);
           }
-        } catch (error, stack) {
-          if (!accepted.isCompleted) accepted.completeError(error, stack);
-        }
+        });
       },
-      onError: (Object error, StackTrace stack) {
-        if (!accepted.isCompleted) accepted.completeError(error, stack);
-      },
+      onError: failed,
       onDone: () {
         if (!accepted.isCompleted) {
           accepted.completeError(
             StateError('Pocket Relay bağlantısı kapandı.'),
           );
+        } else {
+          api._connectionLost(StateError('Pocket Relay bağlantısı kapandı.'));
         }
       },
     );
     api = MobilePocketApi._(socket, secure, subscription);
-    final claim = await secure.seal({'claimSecret': qr['claimSecret']});
-    socket.sink.add(
-      jsonEncode({
-        'type': 'pair.claim',
-        'pairingId': qr['pairingId'],
-        'deviceName': 'Android',
-        'devicePublicKey': base64UrlNoPad(publicKey.bytes),
-        'envelope': claim,
-      }),
-    );
-    await accepted.future.timeout(const Duration(minutes: 5));
-    const storage = FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    );
-    await storage.write(
-      key: 'pocket.mobile.pairing',
-      value: jsonEncode({
-        'relayUrl': qr['relayUrl'],
-        'roomId': qr['roomId'],
-        'pairingId': qr['pairingId'],
-        'desktopPublicKey': qr['desktopPublicKey'],
-        'privateKey': base64UrlNoPad(await keyPair.extractPrivateKeyBytes()),
-        'publicKey': base64UrlNoPad(publicKey.bytes),
-      }),
-    );
-    return api;
+    try {
+      final claim = await secure.seal({'claimSecret': qr['claimSecret']});
+      socket.sink.add(
+        jsonEncode({
+          'type': 'pair.claim',
+          'pairingId': qr['pairingId'],
+          'deviceName': 'Android',
+          'devicePublicKey': base64UrlNoPad(publicKey.bytes),
+          'envelope': claim,
+        }),
+      );
+      await accepted.future.timeout(const Duration(minutes: 5));
+      const storage = FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      );
+      await storage.write(
+        key: 'pocket.mobile.pairing',
+        value: jsonEncode({
+          'relayUrl': qr['relayUrl'],
+          'roomId': qr['roomId'],
+          'pairingId': qr['pairingId'],
+          'desktopPublicKey': qr['desktopPublicKey'],
+          'privateKey': base64UrlNoPad(await keyPair.extractPrivateKeyBytes()),
+          'publicKey': base64UrlNoPad(publicKey.bytes),
+        }),
+      );
+      return api;
+    } catch (_) {
+      await subscription.cancel();
+      await socket.sink.close();
+      rethrow;
+    }
   }
 
   static Future<MobilePocketApi?> restore() async {
@@ -154,6 +175,8 @@ class MobilePocketApi implements PocketApi {
     );
     final raw = await storage.read(key: 'pocket.mobile.pairing');
     if (raw == null) return null;
+    IOWebSocketChannel? socket;
+    StreamSubscription<dynamic>? subscription;
     try {
       final value = Map<String, dynamic>.from(jsonDecode(raw) as Map);
       final relay = Uri.parse('${value['relayUrl']}');
@@ -180,7 +203,7 @@ class MobilePocketApi implements PocketApi {
             '${relay.path.replaceFirst(RegExp(r'/$'), '')}/v1/rooms/${value['roomId']}/connect',
       );
       final credential = '${value['pairingId']}.${value['publicKey']}';
-      final socket = IOWebSocketChannel.connect(
+      socket = IOWebSocketChannel.connect(
         endpoint,
         headers: {
           HttpHeaders.authorizationHeader: 'Bearer $credential',
@@ -192,48 +215,60 @@ class MobilePocketApi implements PocketApi {
       await socket.ready;
       final accepted = Completer<void>();
       late final MobilePocketApi api;
-      final subscription = socket.stream.listen(
-        (dynamic rawMessage) async {
-          try {
-            final decoded = jsonDecode('$rawMessage');
-            if (decoded is Map && decoded['type'] == 'relay.offline') {
-              throw StateError('Bilgisayar şu anda çevrimdışı.');
-            }
-            final message = await secure.open(
-              Map<String, dynamic>.from(decoded as Map),
-            );
-            if (message['type'] == 'pair.accepted') {
-              if (!accepted.isCompleted) {
-                accepted.complete();
+      var incoming = Future<void>.value();
+      void failed(Object error, StackTrace stack) {
+        if (!accepted.isCompleted) {
+          accepted.completeError(error, stack);
+        } else {
+          api._connectionLost(error);
+          unawaited(socket!.sink.close(1002, 'Invalid encrypted message'));
+        }
+      }
+
+      subscription = socket.stream.listen(
+        (dynamic rawMessage) {
+          incoming = incoming.then((_) async {
+            try {
+              final decoded = jsonDecode('$rawMessage');
+              if (decoded is Map && decoded['type'] == 'relay.offline') {
+                throw StateError('Bilgisayar şu anda çevrimdışı.');
               }
-            } else if (message['type'] == 'response') {
-              final pending = api._pending.remove('${message['id']}');
-              if (message['error'] != null) {
-                pending?.completeError(StateError('${message['error']}'));
-              } else {
-                pending?.complete(
-                  Map<String, dynamic>.from(
-                    (message['result'] as Map?) ?? const {},
-                  ),
+              final message = await secure.open(
+                Map<String, dynamic>.from(decoded as Map),
+              );
+              if (message['type'] == 'pair.accepted') {
+                if (!accepted.isCompleted) {
+                  accepted.complete();
+                }
+              } else if (message['type'] == 'response') {
+                final pending = api._pending.remove('${message['id']}');
+                if (message['error'] != null) {
+                  pending?.completeError(StateError('${message['error']}'));
+                } else {
+                  pending?.complete(
+                    Map<String, dynamic>.from(
+                      (message['result'] as Map?) ?? const {},
+                    ),
+                  );
+                }
+              } else if (message['type'] == 'event') {
+                api._events.add(
+                  Map<String, dynamic>.from(message['event'] as Map),
                 );
               }
-            } else if (message['type'] == 'event') {
-              api._events.add(
-                Map<String, dynamic>.from(message['event'] as Map),
-              );
+            } catch (error, stack) {
+              failed(error, stack);
             }
-          } catch (error, stack) {
-            if (!accepted.isCompleted) accepted.completeError(error, stack);
-          }
+          });
         },
-        onError: (Object error, StackTrace stack) {
-          if (!accepted.isCompleted) accepted.completeError(error, stack);
-        },
+        onError: failed,
         onDone: () {
           if (!accepted.isCompleted) {
             accepted.completeError(
               StateError('Pocket Relay bağlantısı kapandı.'),
             );
+          } else {
+            api._connectionLost(StateError('Pocket Relay bağlantısı kapandı.'));
           }
         },
       );
@@ -249,7 +284,20 @@ class MobilePocketApi implements PocketApi {
       await accepted.future.timeout(const Duration(seconds: 20));
       return api;
     } catch (_) {
+      await subscription?.cancel();
+      await socket?.sink.close();
       return null;
+    }
+  }
+
+  static Future<bool> hasSavedPairing() async {
+    const storage = FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
+    try {
+      return await storage.read(key: 'pocket.mobile.pairing') != null;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -257,6 +305,7 @@ class MobilePocketApi implements PocketApi {
     String method, [
     Map<String, dynamic> params = const {},
   ]) async {
+    if (!_connected) throw StateError('Mobile connection is unavailable.');
     final id = '${DateTime.now().microsecondsSinceEpoch}-${++_request}';
     final completer = Completer<Map<String, dynamic>>();
     _pending[id] = completer;
@@ -280,7 +329,12 @@ class MobilePocketApi implements PocketApi {
   @override
   Future<Map<String, dynamic>> state() => _call('state');
   @override
-  Stream<Map<String, dynamic>> events() => _events.stream;
+  Stream<Map<String, dynamic>> events() => _connected
+      ? _events.stream
+      : Stream<Map<String, dynamic>>.value({
+          'type': 'mobile.connection',
+          'state': 'disconnected',
+        });
   @override
   Future<Map<String, dynamic>> post(
     String route, [
@@ -316,6 +370,19 @@ class MobilePocketApi implements PocketApi {
 
   @override
   void reset() {}
+
+  void _connectionLost(Object cause) {
+    if (!_connected) return;
+    _connected = false;
+    for (final pending in _pending.values) {
+      if (!pending.isCompleted) pending.completeError(cause);
+    }
+    _pending.clear();
+    if (!_events.isClosed) {
+      _events.add({'type': 'mobile.connection', 'state': 'disconnected'});
+    }
+  }
+
   @override
   void close() {
     _subscription.cancel();

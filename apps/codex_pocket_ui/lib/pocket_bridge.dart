@@ -246,6 +246,12 @@ class PocketController extends ChangeNotifier {
   }
 
   void _event(Map<String, dynamic> value) {
+    if (value['type'] == 'mobile.connection' &&
+        value['state'] == 'disconnected') {
+      error = 'Mobile connection lost. Reconnecting…';
+      notifyListeners();
+      return;
+    }
     if (value['type'] == 'liveOutput' && value['event'] is Map) {
       final event = value['event'] as Map<String, dynamic>;
       if (event['type'] == 'assistant.snapshot' ||
